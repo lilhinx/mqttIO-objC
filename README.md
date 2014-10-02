@@ -3,6 +3,8 @@ mqttIO-iOS-SDK
 
 iOS SDK for MQTT
 
+Chris Hinkle has modified source code to use modern Objective-C conventions and enforce consistent formatting according his personal preferences. 
+
 Copyright © 2011, 2013 2lemetry, LLC
 
 All rights reserved. 
