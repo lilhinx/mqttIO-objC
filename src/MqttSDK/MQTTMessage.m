@@ -258,7 +258,7 @@
 - (void)appendMQTTString:(NSString*)string {
     UInt8 buf[2];
     const char* utf8String = [string UTF8String];
-    int strLen = strlen(utf8String);
+    NSInteger strLen = strlen(utf8String);
     buf[0] = strLen / 256;
     buf[1] = strLen % 256;
     [self appendBytes:buf length:2];

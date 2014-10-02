@@ -35,7 +35,7 @@
 }
 
 - (MQTTEncoderStatus)status {
-    return status;
+    return (MQTTEncoderStatus)status;
 }
 
 - (void)open {
@@ -96,7 +96,7 @@
             }
             break;
         default:
-            NSLog(@"Oops, event code not handled: 0x%02x", eventCode);
+            NSLog(@"Oops, event code not handled: 0x%02lx", eventCode);
             break;
     }
 }
