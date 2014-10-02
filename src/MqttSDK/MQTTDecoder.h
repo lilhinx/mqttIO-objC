@@ -18,17 +18,6 @@
 #import <Foundation/Foundation.h>
 #import "MQTTMessage.h"
 
-@interface MQTTDecoder : NSObject <NSStreamDelegate> {
-    NSInteger       status;
-    NSInputStream*  stream;
-    NSRunLoop*      runLoop;
-    NSString*       runLoopMode;
-    id              delegate;
-    UInt8           header;
-    UInt32          length;
-    UInt32          lengthMultiplier;
-    NSMutableData*  dataBuffer;
-}
 
 typedef enum {
     MQTTDecoderEventProtocolError,
@@ -36,7 +25,7 @@ typedef enum {
     MQTTDecoderEventConnectionError
 } MQTTDecoderEvent;
 
-enum {
+typedef enum {
     MQTTDecoderStatusInitializing,
     MQTTDecoderStatusDecodingHeader,
     MQTTDecoderStatusDecodingLength,
@@ -44,19 +33,28 @@ enum {
     MQTTDecoderStatusConnectionClosed,
     MQTTDecoderStatusConnectionError,
     MQTTDecoderStatusProtocolError
-};
+} MQTTDecoderStatus;
 
-- (id)initWithStream:(NSInputStream*)aStream
-             runLoop:(NSRunLoop*)aRunLoop
-         runLoopMode:(NSString*)aMode;
-- (void)setDelegate:(id)aDelegate;
-- (void)open;
-- (void)close;
-- (void)stream:(NSStream*)sender handleEvent:(NSStreamEvent)eventCode;
-@end
+@class MQTTDecoder;
 
-@interface NSObject (MQTTDecoderDelegate)
+@protocol MQTTDecoderDelegate <NSObject>
+
 - (void)decoder:(MQTTDecoder*)sender newMessage:(MQTTMessage*)msg;
 - (void)decoder:(MQTTDecoder*)sender handleEvent:(MQTTDecoderEvent)eventCode;
 
 @end
+
+@interface MQTTDecoder : NSObject
+
+@property (nonatomic,assign) id<MQTTDecoderDelegate> delegate;
+@property (nonatomic) MQTTDecoderStatus status;
+
+
+
+- (id)initWithStream:(NSInputStream*)aStream runLoop:(NSRunLoop*)aRunLoop runLoopMode:(NSString*)aMode;
+- (void)open;
+- (void)close;
+
+
+@end
+

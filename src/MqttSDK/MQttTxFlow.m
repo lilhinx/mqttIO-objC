@@ -18,33 +18,20 @@
 
 @implementation MQttTxFlow
 
-+ (id)flowWithMsg:(MQTTMessage*)msg
-         deadline:(unsigned int)deadline {
++ (instancetype)flowWithMsg:(MQTTMessage*)msg deadline:(unsigned int)deadline
+{
    return [[MQttTxFlow alloc] initWithMsg:msg deadline:deadline];
 }
 
-- (id)initWithMsg:(MQTTMessage*)aMsg
-         deadline:(unsigned int)aDeadline {
-   msg = aMsg;
-   deadline = aDeadline;
-   return self;
+- (id)initWithMsg:(MQTTMessage*)aMsg deadline:(unsigned int)aDeadline
+{
+    self = [super init];
+    if( self )
+    {
+        self.msg = aMsg;
+        self.deadline = aDeadline;
+    }
+    return self;
 }
-
-- (void)setMsg:(MQTTMessage*)aMsg {
-    msg = aMsg;
-}
-
-- (void)setDeadline:(unsigned int)newDeadline {
-    deadline = newDeadline;
-}
-
-- (MQTTMessage*)msg {
-    return msg;
-}
-
-- (unsigned int) deadline {
-    return deadline;
-}
-
 
 @end

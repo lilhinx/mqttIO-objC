@@ -7,17 +7,59 @@
 //
 
 #import "AppDelegate.h"
+#import "MQTTSession.h"
 
-@interface AppDelegate ()
+@interface AppDelegate ( )<MQTTSessionDelegate>
+
+@property (nonatomic,strong) MQTTSession* session;
 
 @end
 
 @implementation AppDelegate
 
 
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+{
     // Override point for customization after application launch.
+    
+    MQTTSession* session = [[MQTTSession alloc] initWithClientId:@"tarst"];
+    session.delegate = self;
+    
+    [session connectToHost:@"iot.eclipse.org" port:1883];
+    self.session = session;
+
+    
     return YES;
+}
+
+- (void)session:(MQTTSession *)session handleEvent:(MQTTSessionEvent)eventCode
+{
+    switch( eventCode )
+    {
+        case MQTTSessionEventConnected:
+            NSLog( @"connected" );
+            break;
+        case MQTTSessionEventConnectionClosed:
+            NSLog( @"closed" );
+            break;
+        case MQTTSessionEventConnectionError:
+            NSLog( @"error" );
+            break;
+        case MQTTSessionEventConnectionRefused:
+            NSLog( @"refused" );
+            break;
+        case MQTTSessionEventProtocolError:
+            NSLog( @"protocol error" );
+            break;
+        default:
+            break;
+    }
+}
+
+
+- (void)session:(MQTTSession *)session newMessage:(NSData *)data onTopic:(NSString *)topic
+{
+    NSLog( @"message on topic" );
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {

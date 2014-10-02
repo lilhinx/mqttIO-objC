@@ -18,15 +18,6 @@
 #import <Foundation/Foundation.h>
 #import "MQTTMessage.h"
 
-@interface MQTTEncoder : NSObject <NSStreamDelegate> {
-    NSInteger       status;
-    NSOutputStream* stream;
-    NSRunLoop*      runLoop;
-    NSString*       runLoopMode;
-    NSMutableData*  buffer;
-    NSInteger       byteIndex;
-    id              delegate;
-}
 
 typedef enum {
     MQTTEncoderEventReady,
@@ -41,19 +32,26 @@ typedef enum {
     MQTTEncoderStatusError
 } MQTTEncoderStatus;
 
-- (id)initWithStream:(NSOutputStream*)aStream
-             runLoop:(NSRunLoop*)aRunLoop
-         runLoopMode:(NSString*)aMode;
-- (void)setDelegate:(id)aDelegate;
+@class MQTTEncoder;
+
+@protocol MQTTEncoderDelegate <NSObject>
+
+- (void)encoder:(MQTTEncoder*)sender handleEvent:(MQTTEncoderEvent)eventCode;
+
+@end
+
+@interface MQTTEncoder : NSObject
+
+@property (nonatomic,assign) id<MQTTEncoderDelegate> delegate;
+@property (nonatomic) MQTTEncoderStatus status;
+
+
+- (id)initWithStream:(NSOutputStream*)aStream runLoop:(NSRunLoop*)aRunLoop runLoopMode:(NSString*)aMode;
 - (void)open;
 - (void)close;
-- (MQTTEncoderStatus)status;
-- (void)stream:(NSStream*)sender handleEvent:(NSStreamEvent)eventCode;
+
+
 - (void)encodeMessage:(MQTTMessage*)msg;
 
 @end
 
-@interface NSObject (MQTTEncoderDelegate)
-- (void)encoder:(MQTTEncoder*)sender handleEvent:(MQTTEncoderEvent)eventCode;
-
-@end

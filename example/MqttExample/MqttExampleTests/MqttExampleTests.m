@@ -8,20 +8,36 @@
 
 #import <UIKit/UIKit.h>
 #import <XCTest/XCTest.h>
+#import "MQTTSession.h"
 
-@interface MqttExampleTests : XCTestCase
+@interface MqttExampleTests : XCTestCase<MQTTSessionDelegate>
+
+
+@property (nonatomic,strong) MQTTSession* session;
 
 @end
 
 @implementation MqttExampleTests
 
-- (void)setUp {
+- (void)setUp
+{
     [super setUp];
-    // Put setup code here. This method is called before the invocation of each test method in the class.
+    self.session = [[MQTTSession alloc] initWithClientId:@"tarst" userName:@"" password:@""];
 }
 
-- (void)tearDown {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
+
+- (void)session:(MQTTSession *)session handleEvent:(MQTTSessionEvent)eventCode
+{
+    
+}
+
+- (void)session:(MQTTSession *)session newMessage:(NSData *)data onTopic:(NSString *)topic
+{
+    
+}
+
+- (void)tearDown
+{
     [super tearDown];
 }
 
