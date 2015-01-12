@@ -70,7 +70,7 @@
     id<MQTTSessionDelegate> delegate = self.delegate;
     if( delegate && [delegate respondsToSelector:@selector(session:handleEvent:)] )
     {
-        [delegate session:self handleEvent:MQTTSessionEventConnected];
+        [delegate session:self handleEvent:event];
     }
 }
 
