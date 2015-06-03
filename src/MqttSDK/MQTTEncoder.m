@@ -131,7 +131,7 @@
             }
             break;
         default:
-            NSLog(@"Oops, event code not handled: 0x%02lx", eventCode);
+            NSLog( @"Oops, event code not handled" );
             break;
     }
 }

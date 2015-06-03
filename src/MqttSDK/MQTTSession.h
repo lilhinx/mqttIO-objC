@@ -27,7 +27,8 @@ typedef enum {
     MQTTSessionEventConnectionRefused,
     MQTTSessionEventConnectionClosed,
     MQTTSessionEventConnectionError,
-    MQTTSessionEventProtocolError
+    MQTTSessionEventProtocolError,
+    MQTTSessionEventSubscribed
 } MQTTSessionEvent;
 
 

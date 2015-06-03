@@ -26,9 +26,11 @@
 @property (nonatomic) BOOL cleanSessionFlag;
 @property (nonatomic,strong) MQTTMessage* connectMessage;
 
+@property (nonatomic,strong) dispatch_queue_t timer_queue;
+@property (nonatomic,strong) dispatch_source_t timer;
+
 @property (nonatomic,strong) NSRunLoop* runLoop;
 @property (nonatomic,strong) NSString* runLoopMode;
-@property (nonatomic,strong) NSTimer* timer;
 @property (nonatomic) NSInteger idleTimer;
 @property (nonatomic,strong) MQTTEncoder* encoder;
 @property (nonatomic,strong) MQTTDecoder* decoder;
@@ -45,6 +47,7 @@
 - (void)handlePubrec:(MQTTMessage*)msg;
 - (void)handlePubrel:(MQTTMessage*)msg;
 - (void)handlePubcomp:(MQTTMessage*)msg;
+- (void)handleSuback:(MQTTMessage*)msg;
 - (void)send:(MQTTMessage*)msg;
 - (UInt16)nextMsgId;
 
@@ -55,7 +58,7 @@
 - (void)decoder:(MQTTDecoder*)sender newMessage:(MQTTMessage*)msg;
 
 
-- (void)timerHandler:(NSTimer*)theTimer;
+
 
 - (void)delegateHandleEvent:(MQTTSessionEvent)event;
 - (void)delegateHandleMessage:(NSData*)message onTopic:(NSString*)topic;
@@ -70,7 +73,7 @@
     id<MQTTSessionDelegate> delegate = self.delegate;
     if( delegate && [delegate respondsToSelector:@selector(session:handleEvent:)] )
     {
-        [delegate session:self handleEvent:MQTTSessionEventConnected];
+        [delegate session:self handleEvent:event];
     }
 }
 
@@ -160,9 +163,10 @@
 
 - (void)dealloc
 {
-    [self.timer invalidate];
-    self.timer = nil;
-    
+    if( self.timer )
+    {
+        dispatch_source_cancel( self.timer );
+    }
 }
 
 - (void)close
@@ -171,8 +175,11 @@
     [self.decoder close];
     self.encoder = nil;
     self.decoder = nil;
-    [self.timer invalidate];
-    self.timer = nil;
+    if( self.timer )
+    {
+        dispatch_source_cancel( self.timer );
+        self.timer = nil;
+    }
     [self error:MQTTSessionEventConnectionClosed];
 }
 
@@ -284,28 +291,7 @@
 
 - (void)timerHandler:(NSTimer*)theTimer
 {
-    self.idleTimer++;
-    if( self.idleTimer >= self.keepAliveInterval )
-    {
-        if( [self.encoder status] == MQTTEncoderStatusReady )
-        {
-            //NSLog(@"sending PINGREQ");
-            [self.encoder encodeMessage:[MQTTMessage pingreqMessage]];
-            self.idleTimer = 0;
-        }
-    }
-    _ticks++;
-    NSEnumerator *e = [[self.timerRing objectAtIndex:(_ticks % 60)] objectEnumerator];
-    id msgId;
-
-    while( ( msgId = [e nextObject] ) )
-    {
-        MQttTxFlow* flow = [self.txFlows objectForKey:msgId];
-        MQTTMessage *msg = [flow msg];
-        [flow setDeadline:(_ticks + 60)];
-        msg.dupFlag = YES;
-        [self send:msg];
-    }
+    
 }
 
 - (void)encoder:(MQTTEncoder*)sender handleEvent:(MQTTEncoderEvent) eventCode
@@ -387,9 +373,39 @@
                             if( bytes[1] == 0 )
                             {
                                 self.status = MQTTSessionStatusConnected;
-                                self.timer = [[NSTimer alloc] initWithFireDate:[NSDate dateWithTimeIntervalSinceNow:1.0] interval:1.0 target:self selector:@selector(timerHandler:) userInfo:nil repeats:YES];
+                                
+                                self.timer_queue = dispatch_queue_create( "mqtt.session.timer", 0 );
+                                self.timer = dispatch_source_create( DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.timer_queue );
+                                dispatch_source_set_timer( self.timer, dispatch_walltime( NULL, 0 ), 1ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC );
+                                dispatch_source_set_event_handler( self.timer, ^{
+                                    
+                                    self.idleTimer++;
+                                    if( self.idleTimer >= self.keepAliveInterval )
+                                    {
+                                        if( [self.encoder status] == MQTTEncoderStatusReady )
+                                        {
+                                            //NSLog(@"sending PINGREQ");
+                                            [self.encoder encodeMessage:[MQTTMessage pingreqMessage]];
+                                            self.idleTimer = 0;
+                                        }
+                                    }
+                                    _ticks++;
+                                    NSEnumerator *e = [[self.timerRing objectAtIndex:(_ticks % 60)] objectEnumerator];
+                                    id msgId;
+                                    
+                                    while( ( msgId = [e nextObject] ) )
+                                    {
+                                        MQttTxFlow* flow = [self.txFlows objectForKey:msgId];
+                                        MQTTMessage *msg = [flow msg];
+                                        [flow setDeadline:(_ticks + 60)];
+                                        msg.dupFlag = YES;
+                                        [self send:msg];
+                                    }
+                                });
+                                dispatch_resume( self.timer );
+                                
                                 [self delegateHandleEvent:MQTTSessionEventConnected];
-                                [self.runLoop addTimer:self.timer forMode:self.runLoopMode];
+                                
                             }
                             else
                             {
@@ -431,9 +447,17 @@
         case MQTTMessageTypePubcomp:
             [self handlePubcomp:msg];
             break;
+        case MQTTMessageTypeSuback:
+            [self handleSuback:msg];
+            break;
         default:
             return;
     }
+}
+             
+- (void)handleSuback:(MQTTMessage*)msg
+{
+     [self delegateHandleEvent:MQTTSessionEventSubscribed];
 }
 
 - (void)handlePublish:(MQTTMessage*)msg
@@ -615,7 +639,7 @@
     
     if( self.timer != nil )
     {
-        [self.timer invalidate];
+        dispatch_source_cancel( self.timer );
         self.timer = nil;
     }
     
